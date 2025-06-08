@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AES Primitives Pattern Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #2d1b69, #11998e, #38ef7d);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #38ef7d;
+            text-shadow: 0 0 30px rgba(56, 239, 125, 0.6);
+            margin-bottom: 30px;
+            font-size: 2.8em;
+        }
+        
+        .primitive-selector {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .primitive-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .primitive-btn {
+            padding: 15px 20px;
+            background: rgba(56, 239, 125, 0.2);
+            border: 2px solid #38ef7d;
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .primitive-btn.active {
+            background: #38ef7d;
+            color: black;
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(56, 239, 125, 0.5);
+        }
+        
+        .primitive-btn:hover {
+            background: rgba(56, 239, 125, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .primitive-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .primitive-btn:hover::before {
+            left: 100%;
+        }
+        
+        .control-panel {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid rgba(56, 239, 125, 0.3);
+        }
+        
+        .generate-btn {
+            padding: 15px 35px;
+            font-size: 18px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            margin: 10px;
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(255, 107, 107, 0.5);
+        }
+        
+        .analyze-btn {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+        
+        .analyze-btn:hover {
+            box-shadow: 0 15px 30px rgba(78, 205, 196, 0.5);
+        }
+        
+        .visualization-section {
+            margin: 30px 0;
+        }
+        
+        .viz-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin: 20px 0;
+        }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(56, 239, 125, 0.2);
+            position: relative;
+        }
+        
+        .chart-title {
+            color: #38ef7d;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            text-align: center;
+            text-shadow: 0 0 15px rgba(56, 239, 125, 0.5);
+        }
+        
+        .primitive-info {
+            background: rgba(56, 239, 125, 0.1);
+            border: 1px solid #38ef7d;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .info-title {
+            color: #38ef7d;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .step-indicator {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #38ef7d;
+        }
+        
+        .metrics-panel {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(56, 239, 125, 0.2);
+        }
+        
+        .metric-value {
+            font-size: 1.8em;
+            color: #38ef7d;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .comparison-section {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid #ffc107;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        
+        .warning-section {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid #ff6b6b;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #38ef7d, #11998e);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        canvas {
+            border-radius: 8px !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 AES Primitives Pattern Analysis</h1>
+        
+        <div class="primitive-selector">
+            <h3>Select AES Primitive to Analyze</h3>
+            <div class="primitive-grid">
+                <div class="primitive-btn active" onclick="selectPrimitive('subbytes')" id="subbytes">
+                    📋 SubBytes<br><small>S-Box Substitution</small>
+                </div>
+                <div class="primitive-btn" onclick="selectPrimitive('shiftrows')" id="shiftrows">
+                    ↔️ ShiftRows<br><small>Row Rotation</small>
+                </div>
+                <div class="primitive-btn" onclick="selectPrimitive('mixcolumns')" id="mixcolumns">
+                    🌀 MixColumns<br><small>Linear Mixing</small>
+                </div>
+                <div class="primitive-btn" onclick="selectPrimitive('addroundkey')" id="addroundkey">
+                    🔑 AddRoundKey<br><small>XOR with Key</small>
+                </div>
+                <div class="primitive-btn" onclick="selectPrimitive('combination')" id="combination">
+                    🎯 Combined<br><small>Multiple Steps</small>
+                </div>
+                <div class="primitive-btn" onclick="selectPrimitive('fullround')" id="fullround">
+                    🔄 Full Round<br><small>Complete AES Round</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="control-panel">
+            <button class="generate-btn" onclick="generatePrimitiveData()">📊 Generate Data</button>
+            <button class="generate-btn analyze-btn" onclick="analyzePatterns()">🔍 Analyze Patterns</button>
+            <button class="generate-btn" onclick="runComparison()">⚖️ Compare All Primitives</button>
+        </div>
+        
+        <div class="primitive-info" id="primitiveInfo">
+            <div class="info-title">
+                <span id="primitiveIcon">📋</span>
+                <span id="primitiveName">SubBytes Transformation</span>
+            </div>
+            <div id="primitiveDescription">
+                The SubBytes step applies the AES S-Box (substitution box) to each byte. 
+                This non-linear transformation is crucial for security, replacing each input byte 
+                with a corresponding output byte according to a fixed lookup table.
+            </div>
+        </div>
+        
+        <div class="visualization-section">
+            <div class="viz-grid" id="vizGrid">
+                <!-- Charts will be dynamically inserted here -->
+            </div>
+        </div>
+        
+        <div class="metrics-panel" id="metricsPanel" style="display: none;">
+            <h3>📈 Pattern Analysis Metrics</h3>
+            <div class="metrics-grid" id="metricsGrid">
+                <!-- Metrics will be inserted here -->
+            </div>
+            <div class="step-indicator" id="analysisSteps">
+                <!-- Analysis steps will be shown here -->
+            </div>
+        </div>
+        
+        <div class="comparison-section" id="comparisonSection" style="display: none;">
+            <h3>🎯 Primitive Effectiveness Comparison</h3>
+            <div id="comparisonResults">
+                <!-- Comparison results will be inserted here -->
+            </div>
+        </div>
+        
+        <div class="warning-section">
+            <h4>🧠 Key Insights</h4>
+            <ul>
+                <li><strong>SubBytes:</strong> Creates non-linear confusion, breaking simple mathematical relationships</li>
+                <li><strong>ShiftRows:</strong> Provides diffusion by moving data across state positions</li>
+                <li><strong>MixColumns:</strong> Linear transformation that spreads changes across columns</li>
+                <li><strong>AddRoundKey:</strong> Incorporates secret key material via XOR operation</li>
+                <li><strong>Combined Effect:</strong> Each primitive addresses different types of attacks</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let currentPrimitive = 'subbytes';
+        let primitiveData = [];
+        let charts = {};
+        
+        // AES S-Box
+        const sBox = [
+            0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
+            0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
+            0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15,
+            0x04, 0xc7, 0x23, 0xc3, 0x18, 0x96, 0x05, 0x9a, 0x07, 0x12, 0x80, 0xe2, 0xeb, 0x27, 0xb2, 0x75,
+            0x09, 0x83, 0x2c, 0x1a, 0x1b, 0x6e, 0x5a, 0xa0, 0x52, 0x3b, 0xd6, 0xb3, 0x29, 0xe3, 0x2f, 0x84,
+            0x53, 0xd1, 0x00, 0xed, 0x20, 0xfc, 0xb1, 0x5b, 0x6a, 0xcb, 0xbe, 0x39, 0x4a, 0x4c, 0x58, 0xcf,
+            0xd0, 0xef, 0xaa, 0xfb, 0x43, 0x4d, 0x33, 0x85, 0x45, 0xf9, 0x02, 0x7f, 0x50, 0x3c, 0x9f, 0xa8,
+            0x51, 0xa3, 0x40, 0x8f, 0x92, 0x9d, 0x38, 0xf5, 0xbc, 0xb6, 0xda, 0x21, 0x10, 0xff, 0xf3, 0xd2,
+            0xcd, 0x0c, 0x13, 0xec, 0x5f, 0x97, 0x44, 0x17, 0xc4, 0xa7, 0x7e, 0x3d, 0x64, 0x5d, 0x19, 0x73,
+            0x60, 0x81, 0x4f, 0xdc, 0x22, 0x2a, 0x90, 0x88, 0x46, 0xee, 0xb8, 0x14, 0xde, 0x5e, 0x0b, 0xdb,
+            0xe0, 0x32, 0x3a, 0x0a, 0x49, 0x06, 0x24, 0x5c, 0xc2, 0xd3, 0xac, 0x62, 0x91, 0x95, 0xe4, 0x79,
+            0xe7, 0xc8, 0x37, 0x6d, 0x8d, 0xd5, 0x4e, 0xa9, 0x6c, 0x56, 0xf4, 0xea, 0x65, 0x7a, 0xae, 0x08,
+            0xba, 0x78, 0x25, 0x2e, 0x1c, 0xa6, 0xb4, 0xc6, 0xe8, 0xdd, 0x74, 0x1f, 0x4b, 0xbd, 0x8b, 0x8a,
+            0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e,
+            0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
+            0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16
+        ];
+        
+        // Primitive information
+        const primitiveInfo = {
+            subbytes: {
+                icon: '📋',
+                name: 'SubBytes Transformation',
+                description: 'The SubBytes step applies the AES S-Box to each byte. This non-linear transformation replaces each input byte with a corresponding output byte according to a fixed lookup table, providing confusion and breaking linear relationships.'
+            },
+            shiftrows: {
+                icon: '↔️',
+                name: 'ShiftRows Operation',
+                description: 'ShiftRows cyclically shifts the rows of the state array. Row 0 stays unchanged, row 1 shifts left by 1, row 2 by 2, and row 3 by 3 positions. This provides diffusion by spreading data across the state.'
+            },
+            mixcolumns: {
+                icon: '🌀',
+                name: 'MixColumns Transformation',
+                description: 'MixColumns treats each column as a polynomial and multiplies it by a fixed polynomial in GF(2^8). This linear transformation provides excellent diffusion, ensuring that changes in one byte affect the entire column.'
+            },
+            addroundkey: {
+                icon: '🔑',
+                name: 'AddRoundKey Operation',
+                description: 'AddRoundKey XORs the state with a round key derived from the original cipher key. This step incorporates the secret key material into the encryption process, making the transformation key-dependent.'
+            },
+            combination: {
+                icon: '🎯',
+                name: 'Combined Primitives',
+                description: 'Analyzes the cumulative effect of applying multiple AES primitives in sequence. Shows how each operation builds upon the previous to create increasingly complex transformations.'
+            },
+            fullround: {
+                icon: '🔄',
+                name: 'Complete AES Round',
+                description: 'A full AES round consists of SubBytes, ShiftRows, MixColumns, and AddRoundKey (except the last round omits MixColumns). This demonstrates the complete transformation of one AES round.'
+            }
+        };
+        
+        // Primitive transformations
+        const primitives = {
+            subbytes: (value) => sBox[value],
+            
+            shiftrows: (value) => {
+                // Simplified: treat single byte as if it's in different row positions
+                const row = value % 4;
+                const shifts = [0, 1, 2, 3];
+                const shift = shifts[row];
+                return ((value << shift) | (value >> (8 - shift))) & 0xFF;
+            },
+            
+            mixcolumns: (value) => {
+                // Simplified MixColumns on single byte using GF(2^8) multiplication
+                const gfMul = (a, b) => {
+                    let result = 0;
+                    while (b > 0) {
+                        if (b & 1) result ^= a;
+                        a <<= 1;
+                        if (a & 0x100) a ^= 0x11b;
+                        b >>= 1;
+                    }
+                    return result & 0xFF;
+                };
+                
+                // Simulate column mixing by combining with fixed coefficients
+                return gfMul(0x02, value) ^ gfMul(0x03, value >> 4) ^ (value & 0x0F);
+            },
+            
+            addroundkey: (value) => {
+                // XOR with a simulated round key byte
+                const roundKey = 0x3A; // Fixed for demonstration
+                return value ^ roundKey;
+            },
+            
+            combination: (value) => {
+                let result = value;
+                result = primitives.subbytes(result);
+                result = primitives.shiftrows(result);
+                result = primitives.mixcolumns(result);
+                return result;
+            },
+            
+            fullround: (value) => {
+                let result = value;
+                result = primitives.subbytes(result);
+                result = primitives.shiftrows(result);
+                result = primitives.mixcolumns(result);
+                result = primitives.addroundkey(result);
+                return result;
+            }
+        };
+        
+        function selectPrimitive(primitive) {
+            currentPrimitive = primitive;
+            
+            // Update button states
+            document.querySelectorAll('.primitive-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(primitive).classList.add('active');
+            
+            // Update info panel
+            const info = primitiveInfo[primitive];
+            document.getElementById('primitiveIcon').textContent = info.icon;
+            document.getElementById('primitiveName').textContent = info.name;
+            document.getElementById('primitiveDescription').textContent = info.description;
+            
+            // Clear previous analysis
+            document.getElementById('metricsPanel').style.display = 'none';
+            clearCharts();
+        }
+        
+        function generatePrimitiveData() {
+            primitiveData = [];
+            
+            for (let i = 0; i < 256; i++) {
+                const transformed = primitives[currentPrimitive](i);
+                primitiveData.push({
+                    input: i,
+                    output: transformed,
+                    inputCoord: mapToCoordinate(i),
+                    outputCoord: mapToCoordinate(transformed)
+                });
+            }
+            
+            visualizePrimitive();
+        }
+        
+        function mapToCoordinate(value) {
+            // Map to 2D coordinates for visualization
+            return {
+                x: value % 16,
+                y: Math.floor(value / 16)
+            };
+        }
+        
+        function visualizePrimitive() {
+            clearCharts();
+            
+            const vizGrid = document.getElementById('vizGrid');
+            vizGrid.innerHTML = `
+                <div class="chart-container">
+                    <div class="chart-title">Input Distribution</div>
+                    <canvas id="inputChart" width="400" height="400"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Output Distribution</div>
+                    <canvas id="outputChart" width="400" height="400"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Input vs Output Values</div>
+                    <canvas id="transformChart" width="400" height="300"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Difference Analysis</div>
+                    <canvas id="diffChart" width="400" height="300"></canvas>
+                </div>
+            `;
+            
+            createScatterPlot('inputChart', primitiveData.map(d => d.inputCoord), '#38ef7d');
+            createScatterPlot('outputChart', primitiveData.map(d => d.outputCoord), '#ff6b6b');
+            createTransformationPlot();
+            createDifferencePlot();
+        }
+        
+        function createScatterPlot(canvasId, data, color) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        data: data,
+                        backgroundColor: color + '80',
+                        borderColor: color,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { 
+                            min: 0, max: 15, 
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: 'white' }
+                        },
+                        y: { 
+                            min: 0, max: 15,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: 'white' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createTransformationPlot() {
+            const ctx = document.getElementById('transformChart').getContext('2d');
+            
+            charts.transformChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: primitiveData.map(d => d.input),
+                    datasets: [{
+                        label: 'Output Value',
+                        data: primitiveData.map(d => d.output),
+                        borderColor: '#38ef7d',
+                        backgroundColor: '#38ef7d20',
+                        pointRadius: 1,
+                        pointHoverRadius: 3,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { 
+                        legend: { 
+                            display: true,
+                            labels: { color: 'white' }
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            title: { display: true, text: 'Input Value', color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: 'white' }
+                        },
+                        y: { 
+                            title: { display: true, text: 'Output Value', color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: 'white' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createDifferencePlot() {
+            const ctx = document.getElementById('diffChart').getContext('2d');
+            const differences = primitiveData.map(d => d.output - d.input);
+            
+            charts.diffChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: primitiveData.map(d => d.input),
+                    datasets: [{
+                        label: 'Output - Input',
+                        data: differences,
+                        backgroundColor: differences.map(d => d >= 0 ? '#4ecdc480' : '#ff6b6b80'),
+                        borderColor: differences.map(d => d >= 0 ? '#4ecdc4' : '#ff6b6b'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { 
+                        legend: { 
+                            display: true,
+                            labels: { color: 'white' }
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            title: { display: true, text: 'Input Value', color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: 'white' }
+                        },
+                        y: { 
+                            title: { display: true, text: 'Difference', color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: 'white' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function analyzePatterns() {
+            if (primitiveData.length === 0) {
+                alert('Please generate data first!');
+                return;
+            }
+            
+            const metrics = calculateMetrics();
+            displayMetrics(metrics);
+            
+            document.getElementById('metricsPanel').style.display = 'block';
+        }
+        
+        function calculateMetrics() {
+            const inputs = primitiveData.map(d => d.input);
+            const outputs = primitiveData.map(d => d.output);
+            
+            // Calculate various metrics
+            const correlation = calculateCorrelation(inputs, outputs);
+            const entropy = calculateEntropy(outputs);
+            const avalanche = calculateAvalancheEffect();
+            const uniformity = calculateUniformity(outputs);
+            const nonLinearity = calculateNonLinearity();
+            
+            return {
+                correlation: correlation,
+                entropy: entropy,
+                avalanche: avalanche,
+                uniformity: uniformity,
+                nonLinearity: nonLinearity
+            };
+        }
+        
+        function calculateCorrelation(x, y) {
+            const n = x.length;
+            const sumX = x.reduce((a, b) => a + b, 0);
+            const sumY = y.reduce((a, b) => a + b, 0);
+            const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+            const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+            const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
+            
+            const numerator = n * sumXY - sumX * sumY;
+            const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+            
+            return denominator === 0 ? 0 : numerator / denominator;
+        }
+        
+        function calculateEntropy(values) {
+            const counts = {};
+            values.forEach(v => counts[v] = (counts[v] || 0) + 1);
+            
+            const total = values.length;
+            let entropy = 0;
+            
+            Object.values(counts).forEach(count => {
+                const p = count / total;
+                if (p > 0) entropy -= p * Math.log2(p);
+            });
+            
+            return entropy;
+        }
+        
+        function calculateAvalancheEffect() {
+            // Calculate how many bits change on average for single bit input changes
+            let totalBitChanges = 0;
+            let comparisons = 0;
+            
+            for (let i = 0; i < 255; i++) {
+                const original = primitives[currentPrimitive](i);
+                const modified = primitives[currentPrimitive](i + 1);
+                
+                const xor = original ^ modified;
+                let bitChanges = 0;
+                for (let bit = 0; bit < 8; bit++) {
+                    if (xor & (1 << bit)) bitChanges++;
+                }
+                
+                totalBitChanges += bitChanges;
+                comparisons++;
+            }
+            
+            return comparisons > 0 ? (totalBitChanges / comparisons) / 8 : 0; // Normalized to 0-1
+        }
+        
+        function calculateUniformity(outputs) {
+            const counts = {};
+            outputs.forEach(v => counts[v] = (counts[v] || 0) + 1);
+            
+            const expectedCount = outputs.length / 256;
+            let chiSquare = 0;
+            
+            for (let i = 0; i < 256; i++) {
+                const observed = counts[i] || 0;
+                const deviation = observed - expectedCount;
+                chiSquare += (deviation * deviation) / expectedCount;
+            }
+            
+            // Normalize chi-square to 0-1 scale (lower is more uniform)
+            return Math.min(chiSquare / 1000, 1);
+        }
+        
+        function calculateNonLinearity() {
+            // Measure how non-linear the transformation is
+            let linearityScore = 0;
+            
+            // Check if f(x XOR y) = f(x) XOR f(y) for random pairs
+            for (let test = 0; test < 100; test++) {
+                const x = Math.floor(Math.random() * 256);
+                const y = Math.floor(Math.random() * 256);
+                
+                const left = primitives[currentPrimitive](x ^ y);
+                const right = primitives[currentPrimitive](x) ^ primitives[currentPrimitive](y);
+                
+                if (left === right) linearityScore++;
+            }
+            
+            return 1 - (linearityScore / 100); // Higher score = more non-linear
+        }
+        
+        function displayMetrics(metrics) {
+            const metricsGrid = document.getElementById('metricsGrid');
+            
+            metricsGrid.innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-value">${(metrics.correlation * 100).toFixed(1)}%</div>
+                    <div class="metric-label">Input-Output Correlation</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${metrics.entropy.toFixed(2)}</div>
+                    <div class="metric-label">Output Entropy</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${(metrics.avalanche * 100).toFixed(1)}%</div>
+                    <div class="metric-label">Avalanche Effect</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${(metrics.uniformity * 100).toFixed(1)}%</div>
+                    <div class="metric-label">Distribution Deviation</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">${(metrics.nonLinearity * 100).toFixed(1)}%</div>
+                    <div class="metric-label">Non-Linearity</div>
+                </div>
+            `;
+            
+            const analysisSteps = document.getElementById('analysisSteps');
+            analysisSteps.innerHTML = generateAnalysisText(metrics);
+        }
+        
+        function generateAnalysisText(metrics) {
+            const primitive = primitiveInfo[currentPrimitive];
+            
+            let analysis = `<h4>📊 Analysis of ${primitive.name}</h4>`;
+            
+            // Correlation analysis
+            if (Math.abs(metrics.correlation) < 0.1) {
+                analysis += `<p>✅ <strong>Low Correlation (${(metrics.correlation * 100).toFixed(1)}%):</strong> Excellent! The transformation shows minimal linear relationship between input and output.</p>`;
+            } else if (Math.abs(metrics.correlation) < 0.3) {
+                analysis += `<p>⚠️ <strong>Moderate Correlation (${(metrics.correlation * 100).toFixed(1)}%):</strong> Some linear patterns detected, but still cryptographically acceptable.</p>`;
+            } else {
+                analysis += `<p>❌ <strong>High Correlation (${(metrics.correlation * 100).toFixed(1)}%):</strong> Strong linear relationship - concerning for cryptographic security!</p>`;
+            }
+            
+            // Entropy analysis
+            if (metrics.entropy > 7.5) {
+                analysis += `<p>✅ <strong>High Entropy (${metrics.entropy.toFixed(2)}):</strong> Output distribution is highly random and unpredictable.</p>`;
+            } else if (metrics.entropy > 6.0) {
+                analysis += `<p>⚠️ <strong>Moderate Entropy (${metrics.entropy.toFixed(2)}):</strong> Reasonable randomness, but room for improvement.</p>`;
+            } else {
+                analysis += `<p>❌ <strong>Low Entropy (${metrics.entropy.toFixed(2)}):</strong> Output shows predictable patterns!</p>`;
+            }
+            
+            // Avalanche effect analysis
+            if (metrics.avalanche > 0.4) {
+                analysis += `<p>✅ <strong>Good Avalanche Effect (${(metrics.avalanche * 100).toFixed(1)}%):</strong> Small input changes cause significant output changes.</p>`;
+            } else if (metrics.avalanche > 0.2) {
+                analysis += `<p>⚠️ <strong>Moderate Avalanche Effect (${(metrics.avalanche * 100).toFixed(1)}%):</strong> Some diffusion, but could be stronger.</p>`;
+            } else {
+                analysis += `<p>❌ <strong>Weak Avalanche Effect (${(metrics.avalanche * 100).toFixed(1)}%):</strong> Insufficient diffusion of changes!</p>`;
+            }
+            
+            // Non-linearity analysis
+            if (metrics.nonLinearity > 0.8) {
+                analysis += `<p>✅ <strong>High Non-Linearity (${(metrics.nonLinearity * 100).toFixed(1)}%):</strong> Transformation is highly non-linear, resisting linear cryptanalysis.</p>`;
+            } else if (metrics.nonLinearity > 0.5) {
+                analysis += `<p>⚠️ <strong>Moderate Non-Linearity (${(metrics.nonLinearity * 100).toFixed(1)}%):</strong> Some non-linear properties, but could be stronger.</p>`;
+            } else {
+                analysis += `<p>❌ <strong>Low Non-Linearity (${(metrics.nonLinearity * 100).toFixed(1)}%):</strong> Too linear - vulnerable to linear attacks!</p>`;
+            }
+            
+            return analysis;
+        }
+        
+        function runComparison() {
+            const allPrimitives = Object.keys(primitives);
+            const comparisonData = {};
+            
+            // Analyze each primitive
+            allPrimitives.forEach(primitiveName => {
+                const tempData = [];
+                for (let i = 0; i < 256; i++) {
+                    tempData.push({
+                        input: i,
+                        output: primitives[primitiveName](i)
+                    });
+                }
+                
+                const inputs = tempData.map(d => d.input);
+                const outputs = tempData.map(d => d.output);
+                
+                comparisonData[primitiveName] = {
+                    correlation: Math.abs(calculateCorrelationForArrays(inputs, outputs)),
+                    entropy: calculateEntropyForArray(outputs),
+                    avalanche: calculateAvalancheForPrimitive(primitiveName),
+                    nonLinearity: calculateNonLinearityForPrimitive(primitiveName)
+                };
+            });
+            
+            displayComparison(comparisonData);
+        }
+        
+        function calculateCorrelationForArrays(x, y) {
+            const n = x.length;
+            const sumX = x.reduce((a, b) => a + b, 0);
+            const sumY = y.reduce((a, b) => a + b, 0);
+            const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+            const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+            const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
+            
+            const numerator = n * sumXY - sumX * sumY;
+            const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+            
+            return denominator === 0 ? 0 : numerator / denominator;
+        }
+        
+        function calculateEntropyForArray(values) {
+            const counts = {};
+            values.forEach(v => counts[v] = (counts[v] || 0) + 1);
+            
+            const total = values.length;
+            let entropy = 0;
+            
+            Object.values(counts).forEach(count => {
+                const p = count / total;
+                if (p > 0) entropy -= p * Math.log2(p);
+            });
+            
+            return entropy;
+        }
+        
+        function calculateAvalancheForPrimitive(primitiveName) {
+            let totalBitChanges = 0;
+            let comparisons = 0;
+            
+            for (let i = 0; i < 255; i++) {
+                const original = primitives[primitiveName](i);
+                const modified = primitives[primitiveName](i + 1);
+                
+                const xor = original ^ modified;
+                let bitChanges = 0;
+                for (let bit = 0; bit < 8; bit++) {
+                    if (xor & (1 << bit)) bitChanges++;
+                }
+                
+                totalBitChanges += bitChanges;
+                comparisons++;
+            }
+            
+            return comparisons > 0 ? (totalBitChanges / comparisons) / 8 : 0;
+        }
+        
+        function calculateNonLinearityForPrimitive(primitiveName) {
+            let linearityScore = 0;
+            
+            for (let test = 0; test < 100; test++) {
+                const x = Math.floor(Math.random() * 256);
+                const y = Math.floor(Math.random() * 256);
+                
+                const left = primitives[primitiveName](x ^ y);
+                const right = primitives[primitiveName](x) ^ primitives[primitiveName](y);
+                
+                if (left === right) linearityScore++;
+            }
+            
+            return 1 - (linearityScore / 100);
+        }
+        
+        function displayComparison(data) {
+            const comparisonSection = document.getElementById('comparisonSection');
+            const comparisonResults = document.getElementById('comparisonResults');
+            
+            let html = `
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Primitive</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Correlation</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Entropy</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Avalanche</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Non-Linearity</div>
+                    </div>
+                </div>
+            `;
+            
+            Object.entries(data).forEach(([primitive, metrics]) => {
+                const info = primitiveInfo[primitive];
+                html += `
+                    <div class="metrics-grid" style="margin-top: 10px;">
+                        <div class="metric-card">
+                            <div class="metric-value" style="font-size: 1em;">${info.icon} ${info.name}</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" style="color: ${metrics.correlation < 0.1 ? '#38ef7d' : metrics.correlation < 0.3 ? '#ffc107' : '#ff6b6b'}">
+                                ${(metrics.correlation * 100).toFixed(1)}%
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" style="color: ${metrics.entropy > 7.5 ? '#38ef7d' : metrics.entropy > 6.0 ? '#ffc107' : '#ff6b6b'}">
+                                ${metrics.entropy.toFixed(2)}
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" style="color: ${metrics.avalanche > 0.4 ? '#38ef7d' : metrics.avalanche > 0.2 ? '#ffc107' : '#ff6b6b'}">
+                                ${(metrics.avalanche * 100).toFixed(1)}%
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" style="color: ${metrics.nonLinearity > 0.8 ? '#38ef7d' : metrics.nonLinearity > 0.5 ? '#ffc107' : '#ff6b6b'}">
+                                ${(metrics.nonLinearity * 100).toFixed(1)}%
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                <div style="margin-top: 30px;">
+                    <h4>🏆 Key Insights from Comparison:</h4>
+                    <ul>
+                        <li><strong>SubBytes</strong> provides the strongest non-linearity due to the S-Box design</li>
+                        <li><strong>MixColumns</strong> offers excellent diffusion and avalanche properties</li>
+                        <li><strong>ShiftRows</strong> contributes to diffusion but has limited individual impact</li>
+                        <li><strong>AddRoundKey</strong> appears linear individually but adds key-dependent security</li>
+                        <li><strong>Combined operations</strong> show how multiple primitives work together</li>
+                        <li><strong>Full Round</strong> demonstrates the complete AES round transformation</li>
+                    </ul>
+                    
+                    <h4>🔬 Pattern Breaking Analysis:</h4>
+                    <p>Each primitive targets different types of cryptographic weaknesses:</p>
+                    <ul>
+                        <li><strong>Confusion (SubBytes):</strong> Makes the relationship between key and ciphertext complex</li>
+                        <li><strong>Diffusion (ShiftRows + MixColumns):</strong> Spreads the influence of each input bit</li>
+                        <li><strong>Key Integration (AddRoundKey):</strong> Incorporates secret information</li>
+                        <li><strong>Synergy:</strong> Combined effect is greater than the sum of parts</li>
+                    </ul>
+                </div>
+            `;
+            
+            comparisonResults.innerHTML = html;
+            comparisonSection.style.display = 'block';
+        }
+        
+        function clearCharts() {
+            Object.values(charts).forEach(chart => {
+                if (chart && typeof chart.destroy === 'function') {
+                    chart.destroy();
+                }
+            });
+            charts = {};
+        }
+        
+        // Initialize
+        window.onload = function() {
+            selectPrimitive('subbytes');
+        };
+    </script>
+</body>
+</html>

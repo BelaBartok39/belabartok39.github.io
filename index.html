@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cryptography Analysis Demos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 40px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 3em;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+        }
+        
+        .subtitle {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 40px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin: 40px 0;
+        }
+        
+        .demo-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .demo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+            border-color: rgba(102, 126, 234, 0.6);
+        }
+        
+        .demo-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s;
+        }
+        
+        .demo-card:hover::before {
+            left: 100%;
+        }
+        
+        .demo-icon {
+            font-size: 3em;
+            text-align: center;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .demo-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #667eea;
+            text-align: center;
+        }
+        
+        .demo-description {
+            font-size: 0.95em;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .demo-features {
+            list-style: none;
+            margin-bottom: 25px;
+        }
+        
+        .demo-features li {
+            padding: 5px 0;
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .demo-features li::before {
+            content: "✨ ";
+            color: #667eea;
+        }
+        
+        .demo-link {
+            display: block;
+            text-align: center;
+            padding: 12px 25px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .demo-link:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .demo-link::after {
+            content: " →";
+            transition: transform 0.3s ease;
+        }
+        
+        .demo-link:hover::after {
+            transform: translateX(5px);
+        }
+        
+        .intro-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            border-left: 5px solid #667eea;
+        }
+        
+        .intro-title {
+            font-size: 1.5em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .tech-stack {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .tech-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .demo-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Cryptography Analysis Demos</h1>
+        <div class="subtitle">Interactive Explorations of AES Security and Mathematical Curve Fitting</div>
+        
+        <div class="intro-section">
+            <div class="intro-title">🎯 About These Demonstrations</div>
+            <p>This collection explores the fascinating intersection of cryptography, mathematics, and machine learning. Each demo investigates different approaches to analyzing AES (Advanced Encryption Standard) and demonstrates why certain mathematical techniques succeed or fail in cryptographic contexts.</p>
+            
+            <div class="tech-stack">
+                <span class="tech-badge">🔐 AES Encryption</span>
+                <span class="tech-badge">📊 Interactive Visualizations</span>
+                <span class="tech-badge">🧠 Machine Learning</span>
+                <span class="tech-badge">📐 Mathematical Analysis</span>
+                <span class="tech-badge">🎨 Real-time Graphics</span>
+            </div>
+        </div>
+        
+        <div class="demo-grid">
+            <!-- 8-bit AES Spatial Mapping -->
+            <div class="demo-card">
+                <div class="demo-icon">🎯</div>
+                <div class="demo-title">8-bit AES Spatial Mapping</div>
+                <div class="demo-description">
+                    Explore how 8-bit binary numbers map to 2D and 3D coordinate spaces before and after AES encryption. Watch how organized input patterns become chaotic after transformation.
+                </div>
+                <ul class="demo-features">
+                    <li>Interactive 2D/3D visualization</li>
+                    <li>Real AES encryption processing</li>
+                    <li>Pattern disruption analysis</li>
+                    <li>Batch generation and comparison</li>
+                </ul>
+                <a href="/AES_spatial.html" class="demo-link">Launch Demo</a>
+            </div>
+            
+            <!-- AES Curve Mapping & Neural Networks -->
+            <div class="demo-card">
+                <div class="demo-icon">🌊</div>
+                <div class="demo-title">AES Curve Mapping & Neural Networks</div>
+                <div class="demo-description">
+                    Map 8-bit inputs to continuous curves and attempt to train neural networks to predict AES transformations. Demonstrates the challenge of pattern recognition in cryptographic functions.
+                </div>
+                <ul class="demo-features">
+                    <li>Multiple curve mapping strategies</li>
+                    <li>Neural network training simulation</li>
+                    <li>Accuracy metrics and analysis</li>
+                    <li>Overfitting demonstrations</li>
+                </ul>
+                <a href="/AES_curve.html" class="demo-link">Launch Demo</a>
+            </div>
+            
+            <!-- AES Primitives Analysis -->
+            <div class="demo-card">
+                <div class="demo-icon">🔬</div>
+                <div class="demo-title">AES Primitives Pattern Analysis</div>
+                <div class="demo-description">
+                    Dive deep into individual AES components (SubBytes, ShiftRows, MixColumns, AddRoundKey) and analyze how each primitive contributes to breaking mathematical patterns.
+                </div>
+                <ul class="demo-features">
+                    <li>Individual primitive analysis</li>
+                    <li>Pattern disruption metrics</li>
+                    <li>Comparative effectiveness study</li>
+                    <li>Security contribution analysis</li>
+                </ul>
+                <a href="/aes_primitives.html" class="demo-link">Launch Demo</a>
+            </div>
+            
+            <!-- Fourier & Taylor Series Curve Fitting -->
+            <div class="demo-card">
+                <div class="demo-icon">📈</div>
+                <div class="demo-title">Fourier & Taylor Series Curve Fitting</div>
+                <div class="demo-description">
+                    Attempt to approximate AES transformations using classical mathematical techniques including Fourier series, Taylor expansions, polynomial fitting, and hybrid approaches.
+                </div>
+                <ul class="demo-features">
+                    <li>Multiple approximation methods</li>
+                    <li>Fourier series decomposition</li>
+                    <li>Taylor series expansion</li>
+                    <li>Polynomial regression analysis</li>
+                    <li>Prediction accuracy testing</li>
+                </ul>
+                <a href="/AES_series.html" class="demo-link">Launch Demo</a>
+            </div>
+            
+            <!-- Spline Interpolation Analysis -->
+            <div class="demo-card">
+                <div class="demo-icon">🔍</div>
+                <div class="demo-title">Spline Interpolation: The "Perfect" Illusion</div>
+                <div class="demo-description">
+                    Understand why spline interpolation achieves "100% accuracy" on training data but fails catastrophically on new inputs. Explores the difference between memorization and learning.
+                </div>
+                <ul class="demo-features">
+                    <li>Interpolation vs approximation comparison</li>
+                    <li>Overfitting demonstrations</li>
+                    <li>Generalization failure analysis</li>
+                    <li>Real-world testing scenarios</li>
+                </ul>
+                <a href="/aes_interpolation.html" class="demo-link">Launch Demo</a>
+            </div>
+            
+            <!-- Placeholder for Future Demo -->
+            <div class="demo-card" style="opacity: 0.6; border-style: dashed;">
+                <div class="demo-icon">🚀</div>
+                <div class="demo-title">Advanced Cryptanalysis Techniques</div>
+                <div class="demo-description">
+                    Coming soon: Explore differential cryptanalysis, linear cryptanalysis, and other advanced techniques used by professional cryptographers.
+                </div>
+                <ul class="demo-features">
+                    <li>Differential analysis</li>
+                    <li>Linear cryptanalysis</li>
+                    <li>Side-channel attacks</li>
+                    <li>Statistical analysis</li>
+                </ul>
+                <div class="demo-link" style="background: rgba(255,255,255,0.2); cursor: not-allowed;">Coming Soon</div>
+            </div>
+        </div>
+        
+        <div class="intro-section">
+            <div class="intro-title">🧠 Key Learning Objectives</div>
+            <p>These demonstrations illustrate fundamental concepts in cryptography and security:</p>
+            <ul style="margin-top: 15px; padding-left: 20px;">
+                <li style="margin: 8px 0;"><strong>Pattern Disruption:</strong> How AES breaks mathematical relationships between inputs and outputs</li>
+                <li style="margin: 8px 0;"><strong>Avalanche Effect:</strong> Small input changes create dramatic output differences</li>
+                <li style="margin: 8px 0;"><strong>Non-linearity:</strong> Why linear mathematical approaches fail against AES</li>
+                <li style="margin: 8px 0;"><strong>Overfitting vs Generalization:</strong> The difference between memorizing and understanding</li>
+                <li style="margin: 8px 0;"><strong>Computational Complexity:</strong> Why theoretical solutions may be computationally infeasible</li>
+            </ul>
+        </div>
+        
+        <div class="footer">
+            <p>🔐 Educational demonstrations exploring the mathematics of cryptographic security</p>
+            <p style="margin-top: 10px; font-size: 0.8em;">Built with vanilla JavaScript, Chart.js, Three.js, and CryptoJS</p>
+        </div>
+    </div>
+</body>
+</html>

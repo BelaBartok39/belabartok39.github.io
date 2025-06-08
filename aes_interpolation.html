@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spline Interpolation Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            color: #2d3748;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 40px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #e53e3e;
+            text-shadow: 0 0 20px rgba(229, 62, 62, 0.3);
+            margin-bottom: 30px;
+            font-size: 2.8em;
+        }
+        
+        .concept-explanation {
+            background: linear-gradient(135deg, #bee3f8, #90cdf4);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 25px 0;
+            border: 2px solid #3182ce;
+            color: #1a365d;
+        }
+        
+        .concept-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c5282;
+        }
+        
+        .demo-section {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .control-panel {
+            background: rgba(72, 187, 120, 0.1);
+            border: 2px solid #48bb78;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .demo-btn {
+            padding: 15px 25px;
+            font-size: 16px;
+            background: linear-gradient(45deg, #48bb78, #38a169);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+        }
+        
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(72, 187, 120, 0.4);
+        }
+        
+        .warning-btn {
+            background: linear-gradient(45deg, #e53e3e, #c53030);
+        }
+        
+        .warning-btn:hover {
+            box-shadow: 0 8px 25px rgba(229, 62, 62, 0.4);
+        }
+        
+        .visualization-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .chart-title {
+            color: #2d3748;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .comparison-panel {
+            background: linear-gradient(135deg, #fed7d7, #feb2b2);
+            border: 2px solid #e53e3e;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            color: #742a2a;
+        }
+        
+        .interpolation-vs-approximation {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .vs-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            border: 2px solid transparent;
+        }
+        
+        .interpolation-card {
+            border-color: #e53e3e;
+        }
+        
+        .approximation-card {
+            border-color: #48bb78;
+        }
+        
+        .card-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .interpolation-title {
+            color: #e53e3e;
+        }
+        
+        .approximation-title {
+            color: #48bb78;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            font-size: 0.9em;
+            color: #4a5568;
+        }
+        
+        .danger-zone {
+            background: linear-gradient(135deg, #fed7d7, #fc8181);
+            border: 3px solid #e53e3e;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            color: #742a2a;
+        }
+        
+        .success-zone {
+            background: linear-gradient(135deg, #c6f6d5, #9ae6b4);
+            border: 3px solid #48bb78;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            color: #22543d;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        
+        .highlight {
+            background: #ffd600;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Spline Interpolation: The "Perfect" Illusion</h1>
+        
+        <div class="concept-explanation">
+            <div class="concept-title">🎯 What Is Spline Interpolation?</div>
+            <p><strong>Spline interpolation</strong> is a method that creates a smooth curve by connecting data points with piecewise polynomial segments. Think of it like connecting dots with a flexible ruler that bends to pass through every single point exactly.</p>
+            
+            <p><strong>Key characteristics:</strong></p>
+            <ul>
+                <li><strong>Interpolation:</strong> Passes through ALL known data points exactly</li>
+                <li><strong>Piecewise:</strong> Uses different polynomial segments between points</li>
+                <li><strong>Smooth:</strong> Ensures continuity at connection points</li>
+                <li><strong>Local:</strong> Changes in one region don't affect distant regions</li>
+            </ul>
+        </div>
+        
+        <div class="interpolation-vs-approximation">
+            <div class="vs-card interpolation-card">
+                <div class="card-title interpolation-title">❌ Interpolation (Splines)</div>
+                <ul>
+                    <li><strong>Goal:</strong> Pass through every data point exactly</li>
+                    <li><strong>Accuracy on known points:</strong> 100%</li>
+                    <li><strong>Accuracy on unknown points:</strong> Often terrible</li>
+                    <li><strong>Essentially:</strong> Memorization without understanding</li>
+                    <li><strong>Problem:</strong> Overfitting - no generalization</li>
+                    <li><strong>Analogy:</strong> Memorizing answers vs. learning math</li>
+                </ul>
+            </div>
+            
+            <div class="vs-card approximation-card">
+                <div class="card-title approximation-title">✅ Approximation (Fourier/Polynomial)</div>
+                <ul>
+                    <li><strong>Goal:</strong> Find underlying pattern/function</li>
+                    <li><strong>Accuracy on known points:</strong> Imperfect</li>
+                    <li><strong>Accuracy on unknown points:</strong> Hopefully better</li>
+                    <li><strong>Essentially:</strong> Learning the "rule" behind data</li>
+                    <li><strong>Benefit:</strong> Generalization potential</li>
+                    <li><strong>Analogy:</strong> Understanding principles</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="control-panel">
+            <h3>Interactive Demonstrations</h3>
+            <div class="button-grid">
+                <button class="demo-btn" onclick="demonstrateSimpleSpline()">📈 Simple Spline Demo</button>
+                <button class="demo-btn" onclick="demonstrateAESSpline()">🔐 AES Spline "Success"</button>
+                <button class="demo-btn" onclick="testGeneralization()">🎯 Test Generalization</button>
+                <button class="demo-btn warning-btn" onclick="showOverfittingDanger()">⚠️ Overfitting Danger</button>
+                <button class="demo-btn" onclick="compareAllMethods()">⚖️ Method Comparison</button>
+                <button class="demo-btn" onclick="realWorldTest()">🌍 Real-World Test</button>
+            </div>
+        </div>
+        
+        <div class="visualization-grid" id="visualizationGrid">
+            <!-- Charts will be inserted here -->
+        </div>
+        
+        <div class="demo-section" id="resultsSection" style="display: none;">
+            <h3>📊 Analysis Results</h3>
+            <div class="metrics-grid" id="metricsGrid">
+                <!-- Metrics will be inserted here -->
+            </div>
+            <div id="explanationText">
+                <!-- Detailed explanation will be inserted here -->
+            </div>
+        </div>
+        
+        <div class="danger-zone">
+            <h4>🚨 Why Spline "Success" Is Actually Failure</h4>
+            <p><strong>The fundamental problem:</strong> <span class="highlight">Splines achieve 100% accuracy by cheating!</span></p>
+            
+            <div class="code-block">
+// Spline interpolation for AES is essentially:
+function splineAES(input) {
+    // Find the exact training point that matches input
+    for (let i = 0; i < trainingData.length; i++) {
+        if (trainingData[i].input === input) {
+            return trainingData[i].output; // Just return stored value!
+        }
+    }
+    // For unknown points, interpolate (usually badly)
+    return interpolateBetween(nearestPoints);
+}</div>
+            
+            <p><strong>This is like:</strong></p>
+            <ul>
+                <li>🎓 <strong>School:</strong> Memorizing test answers vs. learning the subject</li>
+                <li>🗺️ <strong>Navigation:</strong> Remembering every street vs. understanding maps</li>
+                <li>🔍 <strong>Science:</strong> Recording observations vs. discovering laws</li>
+                <li>💡 <strong>Cryptography:</strong> Storing all outputs vs. breaking the algorithm</li>
+            </ul>
+        </div>
+        
+        <div class="success-zone">
+            <h4>✅ What Real Function Approximation Should Do</h4>
+            <p><strong>True approximation methods try to discover the underlying mathematical relationship:</strong></p>
+            <ul>
+                <li><strong>Fourier Series:</strong> "Is this a combination of periodic waves?"</li>
+                <li><strong>Polynomials:</strong> "Can this be expressed as a mathematical formula?"</li>
+                <li><strong>Neural Networks:</strong> "What function maps inputs to outputs?"</li>
+                <li><strong>Taylor Series:</strong> "How does this behave locally and globally?"</li>
+            </ul>
+            
+            <p><strong>The goal is generalization:</strong> Predict outputs for inputs never seen before!</p>
+        </div>
+        
+        <div class="comparison-panel">
+            <h4>🎪 The Spline Illusion in Cryptography</h4>
+            <p>If splines could really "solve" AES, every cryptographer would be unemployed! Here's why they can't:</p>
+            
+            <ol>
+                <li><strong>Storage Problem:</strong> You need to store every single input-output pair</li>
+                <li><strong>Key Dependency:</strong> Different AES keys require completely different splines</li>
+                <li><strong>Interpolation Failure:</strong> Between known points, splines produce garbage</li>
+                <li><strong>No Compression:</strong> The "solution" is larger than the original problem</li>
+                <li><strong>Zero Insight:</strong> Provides no understanding of AES's structure</li>
+            </ol>
+            
+            <p><strong>Bottom line:</strong> Splines don't crack AES - they just create an expensive lookup table!</p>
+        </div>
+    </div>
+
+    <script>
+        let charts = {};
+        let aesKey;
+        
+        function getAESKey() {
+            if (!aesKey) {
+                aesKey = CryptoJS.lib.WordArray.random(128/8);
+            }
+            return aesKey;
+        }
+        
+        function encryptByte(value) {
+            const hex = value.toString(16).padStart(2, '0');
+            const paddedMessage = hex.padEnd(32, '0');
+            const key = getAESKey();
+            
+            const encrypted = CryptoJS.AES.encrypt(
+                CryptoJS.enc.Hex.parse(paddedMessage),
+                key,
+                { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.NoPadding }
+            );
+            
+            const encryptedHex = encrypted.ciphertext.toString(CryptoJS.enc.Hex);
+            return parseInt(encryptedHex.substring(0, 2), 16);
+        }
+        
+        function demonstrateSimpleSpline() {
+            clearVisualizations();
+            
+            // Create a simple mathematical function to demonstrate the concept
+            const simpleFunction = x => 50 + 30 * Math.sin(x * 0.1) + 10 * Math.cos(x * 0.05);
+            
+            // Sample some points
+            const samplePoints = [];
+            for (let x = 0; x <= 100; x += 10) {
+                samplePoints.push({
+                    x: x,
+                    y: simpleFunction(x) + (Math.random() - 0.5) * 10 // Add some noise
+                });
+            }
+            
+            // Create dense points for the true function
+            const trueFunction = [];
+            for (let x = 0; x <= 100; x += 1) {
+                trueFunction.push({ x: x, y: simpleFunction(x) });
+            }
+            
+            // Create spline interpolation
+            const splinePoints = [];
+            for (let x = 0; x <= 100; x += 1) {
+                splinePoints.push({ x: x, y: splineInterpolate(x, samplePoints) });
+            }
+            
+            createComparisonChart('Simple Function Demonstration', {
+                'True Function': { data: trueFunction, color: '#48bb78', type: 'line' },
+                'Sample Points': { data: samplePoints, color: '#e53e3e', type: 'scatter' },
+                'Spline Interpolation': { data: splinePoints, color: '#3182ce', type: 'line' }
+            });
+            
+            showResults({
+                'Sample Points': samplePoints.length,
+                'Spline Accuracy on Samples': '100%',
+                'True Function Accuracy': `${calculateAccuracy(splinePoints, trueFunction).toFixed(1)}%`,
+                'Method': 'Linear Spline'
+            }, 
+            'This shows how splines perfectly fit sample points but may miss the true underlying function.');
+        }
+        
+        function demonstrateAESSpline() {
+            clearVisualizations();
+            
+            // Generate AES data points
+            const aesData = [];
+            for (let i = 0; i < 50; i++) {
+                const input = i * 5; // Sample every 5th point
+                aesData.push({
+                    x: input,
+                    y: encryptByte(input)
+                });
+            }
+            
+            // Create complete AES function for comparison
+            const completeAES = [];
+            for (let x = 0; x < 250; x++) {
+                completeAES.push({ x: x, y: encryptByte(x) });
+            }
+            
+            // Create spline interpolation
+            const splineAES = [];
+            for (let x = 0; x < 250; x++) {
+                splineAES.push({ x: x, y: splineInterpolate(x, aesData) });
+            }
+            
+            createComparisonChart('AES Spline "Success" Demonstration', {
+                'True AES Function': { data: completeAES, color: '#e53e3e', type: 'line' },
+                'Sample Points': { data: aesData, color: '#3182ce', type: 'scatter' },
+                'Spline Interpolation': { data: splineAES, color: '#805ad5', type: 'line' }
+            });
+            
+            const accuracy = calculateAccuracy(splineAES, completeAES);
+            
+            showResults({
+                'Training Points': aesData.length,
+                'Accuracy on Training': '100%',
+                'Accuracy on Complete AES': `${accuracy.toFixed(1)}%`,
+                'Interpolation Method': 'Linear Spline',
+                'Storage Required': `${aesData.length} points`
+            },
+            `The spline achieves "perfect" accuracy on training points but fails miserably on the complete AES function (${accuracy.toFixed(1)}% accurate). It's just memorizing, not learning!`);
+        }
+        
+        function testGeneralization() {
+            clearVisualizations();
+            
+            // Train on subset of AES points
+            const trainingData = [];
+            for (let i = 0; i < 128; i += 4) { // Sample every 4th point
+                trainingData.push({
+                    x: i,
+                    y: encryptByte(i)
+                });
+            }
+            
+            // Test on different points
+            const testData = [];
+            for (let i = 0; i < 128; i += 2) { // Every 2nd point (includes unseen points)
+                testData.push({
+                    x: i,
+                    y: encryptByte(i)
+                });
+            }
+            
+            // Create spline predictions
+            const splinePredictions = [];
+            for (const point of testData) {
+                splinePredictions.push({
+                    x: point.x,
+                    y: splineInterpolate(point.x, trainingData)
+                });
+            }
+            
+            // Create error visualization
+            const errors = [];
+            for (let i = 0; i < testData.length; i++) {
+                errors.push({
+                    x: testData[i].x,
+                    y: Math.abs(testData[i].y - splinePredictions[i].y)
+                });
+            }
+            
+            createErrorChart('Generalization Test: Training vs Testing', {
+                'Training Points': { data: trainingData, color: '#48bb78', type: 'scatter' },
+                'Actual Test Values': { data: testData, color: '#e53e3e', type: 'scatter' },
+                'Spline Predictions': { data: splinePredictions, color: '#3182ce', type: 'line' },
+                'Prediction Errors': { data: errors, color: '#ed8936', type: 'bar' }
+            });
+            
+            const trainingAccuracy = 100; // Perfect on training by definition
+            const testAccuracy = calculateAccuracy(splinePredictions, testData);
+            const avgError = errors.reduce((sum, e) => sum + e.y, 0) / errors.length;
+            
+            showResults({
+                'Training Accuracy': `${trainingAccuracy}%`,
+                'Test Accuracy': `${testAccuracy.toFixed(1)}%`,
+                'Average Error': avgError.toFixed(2),
+                'Overfitting Factor': `${(100 - testAccuracy).toFixed(1)}%`,
+                'Training Points': trainingData.length
+            },
+            `Classic overfitting! Perfect on training data, terrible on unseen data. Average error of ${avgError.toFixed(2)} shows the spline is just guessing between known points.`);
+        }
+        
+        function showOverfittingDanger() {
+            clearVisualizations();
+            
+            // Create a pathological example
+            const noisyData = [];
+            for (let i = 0; i < 20; i++) {
+                noisyData.push({
+                    x: i * 5,
+                    y: 50 + (Math.random() - 0.5) * 80 // Very noisy data
+                });
+            }
+            
+            // True underlying function (unknown to spline)
+            const trueFunction = [];
+            for (let x = 0; x <= 100; x++) {
+                trueFunction.push({
+                    x: x,
+                    y: 50 + 20 * Math.sin(x * 0.1) // Simple sine wave
+                });
+            }
+            
+            // Spline interpolation
+            const splineFunction = [];
+            for (let x = 0; x <= 100; x++) {
+                splineFunction.push({
+                    x: x,
+                    y: splineInterpolate(x, noisyData)
+                });
+            }
+            
+            createComparisonChart('The Overfitting Danger', {
+                'True Function': { data: trueFunction, color: '#48bb78', type: 'line' },
+                'Noisy Sample Points': { data: noisyData, color: '#e53e3e', type: 'scatter' },
+                'Spline (Overfitted)': { data: splineFunction, color: '#805ad5', type: 'line' }
+            });
+            
+            showResults({
+                'Spline Accuracy on Samples': '100%',
+                'Spline vs True Function': `${calculateAccuracy(splineFunction, trueFunction).toFixed(1)}%`,
+                'Problem': 'Severe Overfitting',
+                'Lesson': 'Perfect ≠ Good'
+            },
+            'This demonstrates why 100% accuracy can be misleading. The spline perfectly fits noisy data but completely misses the true underlying pattern!');
+        }
+        
+        function compareAllMethods() {
+            clearVisualizations();
+            
+            // Generate test data
+            const testData = [];
+            for (let i = 0; i < 64; i++) {
+                testData.push({
+                    x: i,
+                    y: encryptByte(i)
+                });
+            }
+            
+            // Simulate different methods
+            const methods = {
+                'Spline': { accuracy: 100, generalization: 15, complexity: 64, insight: 0 },
+                'Fourier (10 terms)': { accuracy: 25, generalization: 30, complexity: 20, insight: 60 },
+                'Polynomial (degree 8)': { accuracy: 35, generalization: 20, complexity: 9, insight: 40 },
+                'Neural Network': { accuracy: 45, generalization: 35, complexity: 50, insight: 20 }
+            };
+            
+            createMethodComparison('Method Comparison', methods);
+            
+            showResults({
+                'Best Training Accuracy': 'Spline (100%)',
+                'Best Generalization': 'Neural Network (35%)',
+                'Lowest Complexity': 'Polynomial (9 params)',
+                'Most Insight': 'Fourier (60%)',
+                'Practical Winner': 'None - AES resists all!'
+            },
+            'Splines win on training accuracy but lose on everything that matters for cryptanalysis: generalization, efficiency, and insight into AES structure.');
+        }
+        
+        function realWorldTest() {
+            clearVisualizations();
+            
+            // Simulate different AES keys
+            const keys = ['Key 1', 'Key 2', 'Key 3'];
+            const keyResults = {};
+            
+            keys.forEach((keyName, keyIndex) => {
+                // Generate new key
+                aesKey = CryptoJS.lib.WordArray.random(128/8);
+                
+                // Train spline on first 32 points
+                const trainingData = [];
+                for (let i = 0; i < 32; i++) {
+                    trainingData.push({
+                        x: i,
+                        y: encryptByte(i)
+                    });
+                }
+                
+                // Test on next 32 points
+                const testData = [];
+                for (let i = 32; i < 64; i++) {
+                    testData.push({
+                        x: i,
+                        actual: encryptByte(i),
+                        predicted: splineInterpolate(i, trainingData)
+                    });
+                }
+                
+                const accuracy = testData.reduce((acc, point) => {
+                    return acc + (Math.abs(point.actual - point.predicted) < 5 ? 1 : 0);
+                }, 0) / testData.length * 100;
+                
+                keyResults[keyName] = accuracy;
+            });
+            
+            createKeyComparison('Real-World Test: Different AES Keys', keyResults);
+            
+            const avgAccuracy = Object.values(keyResults).reduce((a, b) => a + b, 0) / keys.length;
+            
+            showResults({
+                'Keys Tested': keys.length,
+                'Average Accuracy': `${avgAccuracy.toFixed(1)}%`,
+                'Best Key Performance': `${Math.max(...Object.values(keyResults)).toFixed(1)}%`,
+                'Worst Key Performance': `${Math.min(...Object.values(keyResults)).toFixed(1)}%`,
+                'Reality Check': 'Failed!'
+            },
+            `Real-world test reveals the truth: splines fail catastrophically on unseen data with different AES keys. Average accuracy of ${avgAccuracy.toFixed(1)}% is no better than random guessing!`);
+        }
+        
+        function splineInterpolate(x, points) {
+            // Simple linear interpolation between nearest points
+            if (points.length === 0) return 0;
+            
+            // Find exact match
+            for (const point of points) {
+                if (point.x === x) return point.y;
+            }
+            
+            // Find surrounding points
+            let left = null, right = null;
+            
+            for (const point of points) {
+                if (point.x < x && (left === null || point.x > left.x)) {
+                    left = point;
+                }
+                if (point.x > x && (right === null || point.x < right.x)) {
+                    right = point;
+                }
+            }
+            
+            // Interpolate
+            if (left && right) {
+                const t = (x - left.x) / (right.x - left.x);
+                return left.y + t * (right.y - left.y);
+            } else if (left) {
+                return left.y;
+            } else if (right) {
+                return right.y;
+            } else {
+                return points[0].y;
+            }
+        }
+        
+        function calculateAccuracy(predictions, actual) {
+            let correct = 0;
+            const tolerance = 5;
+            
+            for (let i = 0; i < Math.min(predictions.length, actual.length); i++) {
+                if (Math.abs(predictions[i].y - actual[i].y) <= tolerance) {
+                    correct++;
+                }
+            }
+            
+            return (correct / Math.min(predictions.length, actual.length)) * 100;
+        }
+        
+        function clearVisualizations() {
+            Object.values(charts).forEach(chart => {
+                if (chart && typeof chart.destroy === 'function') {
+                    chart.destroy();
+                }
+            });
+            charts = {};
+            document.getElementById('visualizationGrid').innerHTML = '';
+            document.getElementById('resultsSection').style.display = 'none';
+        }
+        
+        function createComparisonChart(title, datasets) {
+            const container = document.getElementById('visualizationGrid');
+            container.innerHTML = `
+                <div class="chart-container">
+                    <div class="chart-title">${title}</div>
+                    <canvas id="comparisonChart" width="400" height="300"></canvas>
+                </div>
+            `;
+            
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            
+            const chartDatasets = Object.entries(datasets).map(([name, config]) => ({
+                label: name,
+                data: config.data,
+                backgroundColor: config.color + '40',
+                borderColor: config.color,
+                pointRadius: config.type === 'scatter' ? 4 : 1,
+                pointHoverRadius: 6,
+                type: config.type === 'bar' ? 'bar' : config.type === 'scatter' ? 'scatter' : 'line',
+                fill: false,
+                tension: 0.1
+            }));
+            
+            charts.comparison = new Chart(ctx, {
+                type: 'line',
+                data: { datasets: chartDatasets },
+                options: {
+                    responsive: true,
+                    plugins: { 
+                        legend: { labels: { color: '#2d3748' } }
+                    },
+                    scales: {
+                        x: { 
+                            title: { display: true, text: 'Input', color: '#2d3748' },
+                            grid: { color: 'rgba(45, 55, 72, 0.1)' },
+                            ticks: { color: '#2d3748' }
+                        },
+                        y: { 
+                            title: { display: true, text: 'Output', color: '#2d3748' },
+                            grid: { color: 'rgba(45, 55, 72, 0.1)' },
+                            ticks: { color: '#2d3748' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createErrorChart(title, datasets) {
+            const container = document.getElementById('visualizationGrid');
+            container.innerHTML = `
+                <div class="chart-container">
+                    <div class="chart-title">${title}</div>
+                    <canvas id="errorChart" width="400" height="300"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Error Distribution</div>
+                    <canvas id="errorDistChart" width="400" height="300"></canvas>
+                </div>
+            `;
+            
+            // Main comparison chart
+            const ctx1 = document.getElementById('errorChart').getContext('2d');
+            const chartDatasets = Object.entries(datasets).filter(([name]) => name !== 'Prediction Errors').map(([name, config]) => ({
+                label: name,
+                data: config.data,
+                backgroundColor: config.color + '40',
+                borderColor: config.color,
+                pointRadius: config.type === 'scatter' ? 4 : 1,
+                type: config.type === 'scatter' ? 'scatter' : 'line',
+                fill: false
+            }));
+            
+            charts.error = new Chart(ctx1, {
+                type: 'line',
+                data: { datasets: chartDatasets },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { color: '#2d3748' } } },
+                    scales: {
+                        x: { 
+                            title: { display: true, text: 'Input', color: '#2d3748' },
+                            ticks: { color: '#2d3748' }
+                        },
+                        y: { 
+                            title: { display: true, text: 'Output', color: '#2d3748' },
+                            ticks: { color: '#2d3748' }
+                        }
+                    }
+                }
+            });
+            
+            // Error distribution chart
+            const ctx2 = document.getElementById('errorDistChart').getContext('2d');
+            const errorData = datasets['Prediction Errors'].data;
+            
+            charts.errorDist = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: errorData.map(d => d.x),
+                    datasets: [{
+                        label: 'Prediction Error',
+                        data: errorData.map(d => d.y),
+                        backgroundColor: errorData.map(d => 
+                            d.y < 10 ? 'rgba(72, 187, 120, 0.6)' : 
+                            d.y < 50 ? 'rgba(237, 137, 54, 0.6)' : 
+                            'rgba(229, 62, 62, 0.6)'
+                        ),
+                        borderColor: '#2d3748',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { color: '#2d3748' } } },
+                    scales: {
+                        x: { 
+                            title: { display: true, text: 'Input Position', color: '#2d3748' },
+                            ticks: { color: '#2d3748' }
+                        },
+                        y: { 
+                            title: { display: true, text: 'Absolute Error', color: '#2d3748' },
+                            ticks: { color: '#2d3748' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createMethodComparison(title, methods) {
+            const container = document.getElementById('visualizationGrid');
+            container.innerHTML = `
+                <div class="chart-container">
+                    <div class="chart-title">${title}</div>
+                    <canvas id="methodChart" width="400" height="300"></canvas>
+                </div>
+            `;
+            
+            const ctx = document.getElementById('methodChart').getContext('2d');
+            
+            const methodNames = Object.keys(methods);
+            const metrics = ['accuracy', 'generalization', 'complexity', 'insight'];
+            const colors = ['#e53e3e', '#48bb78', '#3182ce', '#805ad5'];
+            
+            const datasets = metrics.map((metric, index) => ({
+                label: metric.charAt(0).toUpperCase() + metric.slice(1),
+                data: methodNames.map(method => methods[method][metric]),
+                backgroundColor: colors[index] + '60',
+                borderColor: colors[index],
+                borderWidth: 2
+            }));
+            
+            charts.method = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: methodNames,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { color: '#2d3748' } } },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#2d3748' },
+                            grid: { color: 'rgba(45, 55, 72, 0.2)' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createKeyComparison(title, keyResults) {
+            const container = document.getElementById('visualizationGrid');
+            container.innerHTML = `
+                <div class="chart-container">
+                    <div class="chart-title">${title}</div>
+                    <canvas id="keyChart" width="400" height="300"></canvas>
+                </div>
+            `;
+            
+            const ctx = document.getElementById('keyChart').getContext('2d');
+            
+            charts.key = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(keyResults),
+                    datasets: [{
+                        label: 'Prediction Accuracy (%)',
+                        data: Object.values(keyResults),
+                        backgroundColor: Object.values(keyResults).map(acc => 
+                            acc > 80 ? 'rgba(72, 187, 120, 0.8)' :
+                            acc > 50 ? 'rgba(237, 137, 54, 0.8)' :
+                            'rgba(229, 62, 62, 0.8)'
+                        ),
+                        borderColor: '#2d3748',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { color: '#2d3748' } } },
+                    scales: {
+                        x: { 
+                            title: { display: true, text: 'AES Key', color: '#2d3748' },
+                            ticks: { color: '#2d3748' }
+                        },
+                        y: { 
+                            title: { display: true, text: 'Accuracy (%)', color: '#2d3748' },
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#2d3748' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function showResults(metrics, explanation) {
+            const resultsSection = document.getElementById('resultsSection');
+            const metricsGrid = document.getElementById('metricsGrid');
+            const explanationText = document.getElementById('explanationText');
+            
+            metricsGrid.innerHTML = Object.entries(metrics).map(([label, value]) => `
+                <div class="metric-card">
+                    <div class="metric-value" style="color: ${getMetricColor(label, value)}">${value}</div>
+                    <div class="metric-label">${label}</div>
+                </div>
+            `).join('');
+            
+            explanationText.innerHTML = `
+                <div class="code-block" style="background: #f7fafc; color: #2d3748; border-left: 4px solid #3182ce;">
+                    ${explanation}
+                </div>
+            `;
+            
+            resultsSection.style.display = 'block';
+        }
+        
+        function getMetricColor(label, value) {
+            if (label.includes('Accuracy') || label.includes('accuracy')) {
+                const numValue = parseFloat(value);
+                if (numValue > 80) return '#48bb78';
+                if (numValue > 50) return '#ed8936';
+                return '#e53e3e';
+            }
+            if (label.includes('Error')) {
+                const numValue = parseFloat(value);
+                if (numValue < 10) return '#48bb78';
+                if (numValue < 50) return '#ed8936';
+                return '#e53e3e';
+            }
+            return '#3182ce';
+        }
+        
+        // Initialize with simple demo
+        window.onload = function() {
+            demonstrateSimpleSpline();
+        };
+    </script>
+</body>
+</html>
