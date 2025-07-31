@@ -204,7 +204,7 @@
     <script>
         // List of painting files based on your image
         const paintings = [
-            "A_Winter's_Rest",
+            'A_Winters_Rest',
             'Barn_Quilter',
             'The_Congregation',
             'Dovecote',
@@ -221,10 +221,15 @@
 
         // Function to format painting names for display
         function formatPaintingName(filename) {
-            return filename
+            let displayName = filename
                 .replace(/_/g, ' ') // Replace underscores with spaces
                 .toLowerCase()
                 .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize first letter of each word
+
+            if (displayName == 'A Winters Rest') {
+                displayName = "A Winter's Rest";
+            }
+            return displayName;
         }
 
         // Function to try different image formats
